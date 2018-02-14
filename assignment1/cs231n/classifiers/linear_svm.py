@@ -29,13 +29,17 @@ def svm_loss_naive(W, X, y, reg):
   for i in xrange(num_train):
     scores = X[i].dot(W)
     correct_class_score = scores[y[i]]
+    num_classes_greater_margin = 0
     for j in xrange(num_classes):
       if j == y[i]:
         continue
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
+        num_classes_greater_margin += 1
+        dW[:,j] += X[i,:]
         loss += margin
 
+    dW[:,y[i]] += -X[i,:]*num_classes_greater_margin    
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
@@ -51,7 +55,7 @@ def svm_loss_naive(W, X, y, reg):
   # loss is being computed. As a result you may need to modify some of the    #
   # code above to compute the gradient.                                       #
   #############################################################################
-
+  dW = dW/num_train + 2*reg*W
 
   return loss, dW
 
