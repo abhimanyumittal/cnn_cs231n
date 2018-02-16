@@ -74,7 +74,24 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  scores = np.dot(X,W)
+  correct_class_score = np.choose(y, scores.T) # np.choose uses y to select elements from scores.T
+
+  # Need to remove correct class scores as we dont need to calculate loss/margin for those
+  mask = np.ones(scores.shape,dtype=bool)
+  mask[range(scores.shape[0]),y] = False
+  scores_ = scores[mask].reshape(scores.shape[0],scores.shape[1]-1)
+
+  # Calculate all our margins all at once
+  margin = scores_ - correct_class_score[..., np.newaxis] + 1
+
+  # We only add margin if it is greater than 0
+  margin[margin<0] = 0
+
+  # Average our data loss over the size of the batch and add reg. term to the loss
+  loss = np.sum(margin)/num_train
+  loss += reg*np.sum(W*W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -89,7 +106,20 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  original_margin = scores - correct_class_score[...,np.newaxis] + 1
+
+  # Mask to identify where the margin is greater than 0
+  pos_margin_mask = (original_margin>0).astype(float)
+
+  # Count how many times>0 for each image but dont count the correct class so -1
+  sum_margin = pos_margin_mask.sum(1) -1
+
+  # Make the correct class margin be negative total of how many > 0
+  pos_margin_mask[range(pos_margin_mask.shape[0]),y] = -sum_margin
+
+  dW = np.dot(X.T, pos_margin_mask)
+
+  dW = dW/num_train + 2*reg*W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
