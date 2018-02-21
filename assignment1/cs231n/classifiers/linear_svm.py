@@ -36,9 +36,10 @@ def svm_loss_naive(W, X, y, reg):
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
         num_classes_greater_margin += 1
+        # Gradient for non-correct class weight
         dW[:,j] += X[i,:]
         loss += margin
-
+    # Gradient for correct class weight
     dW[:,y[i]] += -X[i,:]*num_classes_greater_margin    
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
@@ -55,6 +56,7 @@ def svm_loss_naive(W, X, y, reg):
   # loss is being computed. As a result you may need to modify some of the    #
   # code above to compute the gradient.                                       #
   #############################################################################
+  # Average our gradient across the batch and add gradient of regularization term
   dW = dW/num_train + 2*reg*W
 
   return loss, dW
@@ -77,7 +79,7 @@ def svm_loss_vectorized(W, X, y, reg):
   num_train = X.shape[0]
   scores = np.dot(X,W)
   correct_class_score = np.choose(y, scores.T) # np.choose uses y to select elements from scores.T
-
+  # print(correct_class_score)
   # Need to remove correct class scores as we dont need to calculate loss/margin for those
   mask = np.ones(scores.shape,dtype=bool)
   mask[range(scores.shape[0]),y] = False
@@ -85,7 +87,7 @@ def svm_loss_vectorized(W, X, y, reg):
 
   # Calculate all our margins all at once
   margin = scores_ - correct_class_score[..., np.newaxis] + 1
-
+  # print(correct_class_score[...,np.newaxis].shape)
   # We only add margin if it is greater than 0
   margin[margin<0] = 0
 
@@ -107,10 +109,10 @@ def svm_loss_vectorized(W, X, y, reg):
   # loss.                                                                     #
   #############################################################################
   original_margin = scores - correct_class_score[...,np.newaxis] + 1
-
+  # print(original_margin.shape)
   # Mask to identify where the margin is greater than 0
   pos_margin_mask = (original_margin>0).astype(float)
-
+  # print(pos_margin_mask.shape)
   # Count how many times>0 for each image but dont count the correct class so -1
   sum_margin = pos_margin_mask.sum(1) -1
 
