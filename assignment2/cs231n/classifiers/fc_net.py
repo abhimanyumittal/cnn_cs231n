@@ -305,7 +305,42 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        
+        # calculate score loss and add reg. loss for the last FC layer
+        loss, dsoft = softmax_loss(scores, y)
+        loss += 0.5*self.reg*(np.sum(np.square(self.params['W'+str(self.num_layers)])))
+
+        # backprop dsoft to the last FC layer to calculate gradients
+        dx_last, dw_last, db_last = affine_backward(dsoft, final_cache)
+
+        # store gradients of the last FC layer
+        grads['W'+str(self.num_layers)] = dw_last + self.reg*self.params['W'+str(self.num_layers)]
+        grads['b'+str(self.num_layers)] = db_last
+
+        # Iteratively backprop through each Relu & FC layer to calculate gradients.
+        # Go through batchnorm and dropout layers if needed.
+        for i in range(self.num_layers-1, 0, -1):
+
+            if self.use_dropout:
+                dx_last = dropout_backward(dx_last, dropout_cache[str(i)])
+
+            drelu = relu_backward(dx_last, relu_cache[str(i)])
+
+            if self.use_batchnorm:
+                dbatchnorm, dgamma, dbeta = batchnorm_backward(drelu, bn_cache[str(i)])
+                dx_last, dw_last, db_last = affine_backward(dbatchnorm, fc_cache[str(i)])
+                grads['beta'+str(i)] = dbeta
+                grads['gamma'+str(i)] = dgamma
+            else:
+                dx_last, dw_last, db_last = affine_backward(drelu, fc_cache[str(i)])
+
+            # store gradients
+            grads['W'+str(i)] = dw_last + self.reg*self.params['W'+str(i)]
+            grads['b'+str(i)] = db_last
+
+            # add reg. loss for each other FC layer
+            loss += 0.5*self.reg*(np.sum(np.square(self.params['W'+str(i)])))
+            
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
