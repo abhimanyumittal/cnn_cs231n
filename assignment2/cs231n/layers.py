@@ -62,7 +62,6 @@ def affine_backward(dout, cache):
     ###########################################################################
     # number of images in the batch
     NN = x.shape[0]
-
     # reshape each input in our batch to a vector
     reshaped_x = np.reshape(x, [NN, -1])
 
@@ -70,7 +69,6 @@ def affine_backward(dout, cache):
     dx = np.reshape(dx, x.shape)
 
     dw = np.dot(reshaped_x.T, dout)
-
     db = np.sum(dout, axis=0)
 
     ###########################################################################
