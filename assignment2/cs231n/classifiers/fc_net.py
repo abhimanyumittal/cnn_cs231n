@@ -164,7 +164,7 @@ class FullyConnectedNet(object):
           this datatype. float32 is faster but less accurate, so you should use
           float64 for numeric gradient checking.
         - seed: If not None, then pass this random seed to the dropout layers. This
-          will make the dropout layers deteriminstic so we can gradient check the
+          will make the dropout layers deterministic so we can gradient check the
           model.
         """
         self.use_batchnorm = use_batchnorm
@@ -186,7 +186,21 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+        
+        # Initialize the weights and biases for each fully connected layer connected to a Relu
+        for i in range(self.num_layers - 1):
+            self.params['W'+str(i+1)] = np.random.normal(0, weight_scale, [input_dim, hidden_dims[i]])
+            self.params['b'+str(i+1)] = np.zeros([hidden_dims[i]])
+
+            if self.use_batchnorm:
+                self.params['beta'+str(i+1)] = np.zeros([hidden_dims[i]])
+                self.params['gamma'+str(i+1)] = np.ones([hidden_dims[i]])
+
+            input_dim = hidden_dims[i] # set the input dim of the next layer to be the output of current layer
+
+        self.params['W'+str(self.num_layers)] = np.random.normal(0, weight_scale, [input_dim, num_classes])
+        self.params['b'+str(self.num_layers)] = np.zeros([num_classes])
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -244,7 +258,31 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        
+        fc_cache = {}
+        relu_cache = {}
+        bn_cache = {}
+        dropout_cache = {}
+        batch_size = X.shape[0]
+
+        X = np.reshape(X, [batch_size,-1])
+
+        for i in range(self.num_layers -1):
+
+            fc_act, fc_cache[str(i+1)] = affine_forward(X, self.params['W'+str(i+1)], self.params['b'+str(i+1)])
+            if self.use_batchnorm:
+                bn_act, bn_cache[str(i+1)] = batchnorm_forward(fc_act, self.params['gamma'+str(i+1)], self.params['beta'+str(i+1)], self.bn_params[i])
+                relu_act, relu_cache[str(i+1)] = relu_forward(bn_act)
+            else:
+                relu_act, relu_cache[str(i+1)] = relu_forward(fc_act)
+
+            if self.use_dropout:
+                relu_act, dropout_cache[str(i+1)] = dropout_forward(relu_act, self.dropout_param)
+
+            X = relu_act.copy()
+
+        scores, final_cache = affine_forward(X, self.params['W'+str(self.num_layers)], self.params['b'+str(self.num_layers)])
+        
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
